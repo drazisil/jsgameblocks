@@ -9,6 +9,8 @@ function drawGrid (sizeObject) {
   const glCanvas = document.getElementById ('glCanvas');
   glCanvas.width = sizeObject.screenWidth - 25;
   glCanvas.height = sizeObject.screenHeight - 25;
+
+  main ();
 }
 
 window.addEventListener ('load', () => {
@@ -17,8 +19,6 @@ window.addEventListener ('load', () => {
 window.addEventListener ('resize', () => {
   drawGrid (updateWidthAndHeight ());
 });
-
-main ();
 
 //
 // Start here
