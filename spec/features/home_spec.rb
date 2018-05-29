@@ -1,4 +1,8 @@
 require 'spec_helper'
+
+Capybara.server = :webrick
+Capybara.default_driver = :selenium_chrome_headless
+
 class Home
   include Capybara::DSL
   def visit_homepage
