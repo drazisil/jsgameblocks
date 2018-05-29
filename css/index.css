@@ -1,0 +1,12 @@
+html {
+  margin: 0px;
+  padding: 0px;
+  height: 99.8%;
+  width: 99.9%;
+  border: 1px solid blue;
+}
+
+canvas {
+  margin: 0px;
+  padding: 0px;
+}
