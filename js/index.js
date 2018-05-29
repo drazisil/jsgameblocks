@@ -1,3 +1,5 @@
+var squareRotation = 0.0;
+
 function updateWidthAndHeight () {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
@@ -40,18 +42,26 @@ function main () {
 
   const vsSource = `
     attribute vec4 aVertexPosition;
+    attribute vec4 aVertexColor;
+
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
-    void main() {
+
+    varying lowp vec4 vColor;
+
+    void main(void) {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      vColor = aVertexColor;
     }
   `;
 
   // Fragment shader program
 
   const fsSource = `
-    void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    varying lowp vec4 vColor;
+
+    void main(void) {
+      gl_FragColor = vColor;
     }
   `;
 
@@ -66,6 +76,7 @@ function main () {
     program: shaderProgram,
     attribLocations: {
       vertexPosition: gl.getAttribLocation (shaderProgram, 'aVertexPosition'),
+      vertexColor: gl.getAttribLocation (shaderProgram, 'aVertexColor'),
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation (
@@ -83,8 +94,19 @@ function main () {
   // objects we'll be drawing.
   const buffers = initBuffers (gl);
 
-  // Draw the scene
-  drawScene (gl, programInfo, buffers);
+  var then = 0;
+
+  // Draw the scene repeatedly
+  function render (now) {
+    now *= 0.001; // convert to seconds
+    const deltaTime = now - then;
+    then = now;
+
+    drawScene (gl, programInfo, buffers, deltaTime);
+
+    requestAnimationFrame (render);
+  }
+  requestAnimationFrame (render);
 }
 
 //
@@ -113,15 +135,39 @@ function initBuffers (gl) {
 
   gl.bufferData (gl.ARRAY_BUFFER, new Float32Array (positions), gl.STATIC_DRAW);
 
+  const colors = [
+    1.0,
+    1.0,
+    1.0,
+    1.0, // white
+    1.0,
+    0.0,
+    0.0,
+    1.0, // red
+    0.0,
+    1.0,
+    0.0,
+    1.0, // green
+    0.0,
+    0.0,
+    1.0,
+    1.0, // blue
+  ];
+
+  const colorBuffer = gl.createBuffer ();
+  gl.bindBuffer (gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData (gl.ARRAY_BUFFER, new Float32Array (colors), gl.STATIC_DRAW);
+
   return {
     position: positionBuffer,
+    color: colorBuffer,
   };
 }
 
 //
 // Draw the scene.
 //
-function drawScene (gl, programInfo, buffers) {
+function drawScene (gl, programInfo, buffers, deltaTime) {
   gl.clearColor (0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
   gl.clearDepth (1.0); // Clear everything
   gl.enable (gl.DEPTH_TEST); // Enable depth testing
@@ -161,8 +207,15 @@ function drawScene (gl, programInfo, buffers) {
     [-0.0, 0.0, -6.0]
   ); // amount to translate
 
+  mat4.rotate (
+    modelViewMatrix, // destination matrix
+    modelViewMatrix, // matrix to rotate
+    squareRotation, // amount to rotate in radians
+    [0, 0, 1]
+  ); // axis to rotate around
+
   // Tell WebGL how to pull out the positions from the position
-  // buffer into the vertexPosition attribute.
+  // buffer into the vertexPosition attribute
   {
     const numComponents = 2;
     const type = gl.FLOAT;
@@ -179,6 +232,26 @@ function drawScene (gl, programInfo, buffers) {
       offset
     );
     gl.enableVertexAttribArray (programInfo.attribLocations.vertexPosition);
+  }
+
+  // Tell WebGL how to pull out the colors from the color buffer
+  // into the vertexColor attribute.
+  {
+    const numComponents = 4;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    const offset = 0;
+    gl.bindBuffer (gl.ARRAY_BUFFER, buffers.color);
+    gl.vertexAttribPointer (
+      programInfo.attribLocations.vertexColor,
+      numComponents,
+      type,
+      normalize,
+      stride,
+      offset
+    );
+    gl.enableVertexAttribArray (programInfo.attribLocations.vertexColor);
   }
 
   // Tell WebGL to use our program when drawing
@@ -203,6 +276,8 @@ function drawScene (gl, programInfo, buffers) {
     const vertexCount = 4;
     gl.drawArrays (gl.TRIANGLE_STRIP, offset, vertexCount);
   }
+
+  squareRotation += deltaTime;
 }
 
 //
